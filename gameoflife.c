@@ -10,6 +10,7 @@ void nextgeneration(char cell[row][col]);
 int neighbourcount(char cell[row][col],int,int);
 void printcells(char cell[row][col]);
 
+/* main strats here */
 int main()
 {
 	int i,j;
