@@ -1,0 +1,140 @@
+From a9f1994f7fcf4f2338f1de001a1c0a0f7c8a04f8 Mon Sep 17 00:00:00 2001
+From: sateesh cherukuri <sateesh.cherukuri@einfochips.com>
+Date: Mon, 17 Jun 2019 11:57:16 +0530
+Subject: [PATCH] New sample driver is added to kernel
+
+---
+ arch/arm/configs/comark-sbc_defconfig |  1 +
+ drivers/Kconfig                       |  2 ++
+ drivers/Makefile                      |  2 ++
+ drivers/sample/Kconfig                |  8 +++++
+ drivers/sample/Makefile               |  3 ++
+ drivers/sample/sample.c               | 61 +++++++++++++++++++++++++++++++++++
+ 6 files changed, 77 insertions(+)
+ create mode 100644 drivers/sample/Kconfig
+ create mode 100644 drivers/sample/Makefile
+ create mode 100644 drivers/sample/sample.c
+
+diff --git a/arch/arm/configs/comark-sbc_defconfig b/arch/arm/configs/comark-sbc_defconfig
+index bdf09ff..229e657 100644
+--- a/arch/arm/configs/comark-sbc_defconfig
++++ b/arch/arm/configs/comark-sbc_defconfig
+@@ -595,3 +595,4 @@ CONFIG_MISC_FILESYSTEMS=n
+ CONFIG_NETWORK_FILESYSTEMS=n
+ CONFIG_MSM_SMD_NMEA=n
+ CONFIG_GPIO_E911=y
++CONFIG_SAMPLE=y
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index a73d713..8acc00b 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -150,4 +150,6 @@ source "drivers/gud/Kconfig"
+ 
+ source "drivers/coresight/Kconfig"
+ 
++source "drivers/sample/Kconfig"
++
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index f461e83..c53f287 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -142,3 +142,5 @@ obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
+ obj-$(CONFIG_MOBICORE_SUPPORT)  += gud/
+ 
+ obj-$(CONFIG_CORESIGHT)		+= coresight/
++
++obj-$(CONFIG_SAMPLE)	+=sample/
+diff --git a/drivers/sample/Kconfig b/drivers/sample/Kconfig
+new file mode 100644
+index 0000000..7c26b23
+--- /dev/null
++++ b/drivers/sample/Kconfig
+@@ -0,0 +1,8 @@
++## kconfig file for sample driver
++
++config SAMPLE
++	boolean "My sample driver"
++	default y
++	---help---
++		<A sample driver for practice>
++
+diff --git a/drivers/sample/Makefile b/drivers/sample/Makefile
+new file mode 100644
+index 0000000..b9d422c
+--- /dev/null
++++ b/drivers/sample/Makefile
+@@ -0,0 +1,3 @@
++#Make file for sample.c
++
++obj-$(CONFIG_SAMPLE) += sample.o
+diff --git a/drivers/sample/sample.c b/drivers/sample/sample.c
+new file mode 100644
+index 0000000..97561d2
+--- /dev/null
++++ b/drivers/sample/sample.c
+@@ -0,0 +1,61 @@
++/*	A simple program for writing a new driver
++ *	which give "Hello, world" when the driver is loaded
++ *  "Goodbye, world" when unloaded */
++
++#include<linux/init.h>
++#include<linux/module.h>
++#include<linux/kernel.h>
++#include<linux/fs.h>
++#include<linux/string.h>
++#include<linux/kobject.h>
++#include<linux/sysfs.h>
++
++static int ret,sam;
++static struct kobject *kobj;
++
++static ssize_t sample_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
++{
++	printk(KERN_INFO "sample driver is reading\n");
++	return sprintf(buf,"%d\n",sam);
++}
++
++static ssize_t sample_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
++{
++	sscanf(buf, "%du", &sam);
++	printk(KERN_INFO "Sample driver is written\n");
++	return count;
++}
++
++static struct kobj_attribute foo_attribute=
++__ATTR(sam, 0666, sample_show, sample_store);
++
++static int __init hello_init(void)
++{
++
++	if (0==register_chrdev_region(123, 5, "sample_driver"))
++		printk(KERN_INFO "123 5 sample driver is registered");
++
++	kobj =  kobject_create_and_add("sample", kernel_kobj);
++	if(!kobj){
++		return - ENOMEM;
++	}
++
++	ret = sysfs_create_file(kobj, &foo_attribute.attr);
++	if(ret)
++		printk(KERN_INFO "failed to create sysfs file");
++	return 0;
++}
++
++static void __exit hello_exit(void)
++{
++	unregister_chrdev_region(123,5);
++	printk(KERN_INFO "Goodbye, world\n");
++	kobject_put(kobj);
++}
++
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR("sateesh cherukuri <sateesh.cherukuri@einfochips.com>");
++MODULE_DESCRIPTION("\"Hello, world!\" sample module");
++
++module_init(hello_init);
++module_exit(hello_exit);
+-- 
+2.7.4
+
